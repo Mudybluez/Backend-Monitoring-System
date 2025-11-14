@@ -81,8 +81,6 @@ Experimenting with cloud metrics collection concepts
 Rapid prototyping of custom monitoring logic
 
 
-# The Metrics
-![]([url=https://ibb.co.com/hJ14jBJ0][img]https://i.ibb.co.com/XrkKg7rH/image.png[/img][/url])
 
 📄 License
 
