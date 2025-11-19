@@ -50,8 +50,3 @@ pip install -r requirements.txt
 - Use a virtual environment and ensure VS Code / Pylance is pointed at the same interpreter where you installed dependencies.
 - If you see `Import "dotenv" could not be resolved`, install `python-dotenv` into the active environment and restart the language server.
 
-**Next steps**
-- Want me to update `src/preprocess.py` to automatically drop `timestamp` when writing `merged.csv`? I can apply that small change now.
-
----
-Generated README to help contributors get started quickly.
