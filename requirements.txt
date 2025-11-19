@@ -11,6 +11,7 @@ scikit-learn
 # Visualization
 matplotlib
 seaborn
+streamlit
 
 # Utils
 tqdm
@@ -21,3 +22,7 @@ python-dotenv
 
 # Database
 pymongo
+
+tqdm
+joblib
+plotly
