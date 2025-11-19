@@ -1,0 +1,23 @@
+# GPU-compatible PyTorch packages (install separately with index-url)
+torch
+torchvision
+torchaudio
+
+# ML
+numpy
+pandas
+scikit-learn
+
+# Visualization
+matplotlib
+seaborn
+
+# Utils
+tqdm
+joblib
+
+# Config / Environment
+python-dotenv
+
+# Database
+pymongo
