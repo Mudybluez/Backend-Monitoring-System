@@ -1,83 +1,86 @@
-import torch
 import pandas as pd
-import joblib
-from pymongo import MongoClient
-from src.model import Autoencoder
-from src.config import *
 import numpy as np
+import torch
+import joblib
+from torch import nn
+from src.model import Autoencoder
+
+MODEL_PATH = "models/checkpoints/autoencoder.pt"
+SCALER_PATH = "models/checkpoints/scaler.pkl"
+OUTPUT_PATH = "data/processed/anomaly_results.csv"
 
 
-
-def load_from_mongo():
-    client = MongoClient("mongodb://localhost:27017/")
-    db = client["monitoring"]
-    collection = db["server_metrics"]
-
-    docs = list(collection.find({}, {"_id": 0}))
-
-    df = pd.DataFrame(docs)
-    print(f"📌 Загружено строк из MongoDB: {len(df)}")
-    return df
+def load_model(input_dim):
+    model = Autoencoder(input_dim=input_dim)
+    state = torch.load(MODEL_PATH, map_location=torch.device("cpu"))
+    model.load_state_dict(state)
+    model.eval()
+    return model
 
 
-def preprocess_mongo(df):
-    # авто-обнаружение колонок
-    def pick(cols, *keywords):
-        for kw in keywords:
-            for col in cols:
-                if kw in col.lower():
-                    return col
+def load_scaler():
+    return joblib.load(SCALER_PATH)
+
+
+def run_inference(input_csv):
+    df = pd.read_csv(input_csv)
+    print("📌 Загружен CSV:", df.shape)
+
+    # --- Detect real column names ---
+    def pick(name):
+        for c in df.columns:
+            if name.lower() in c.lower():
+                return c
         return None
 
-    cols = df.columns
+    cpu_col = pick("cpu")
+    mem_col = pick("mem")
+    disk_col = pick("disk")
+    net_col = pick("net")
 
-    cpu_col = pick(cols, "cpu")
-    mem_col = pick(cols, "mem")
-    disk_col = pick(cols, "disk")
-    net_col = pick(cols, "net")
+    metric_cols = [cpu_col, mem_col, disk_col, net_col]
 
-    df_norm = pd.DataFrame({
-        "cpu": df[cpu_col],
-        "memory": df[mem_col],
-        "disk": df[disk_col],
-        "network": df[net_col],
-    })
+    if None in metric_cols:
+        raise ValueError("❌ Не найдены нужные колонки в CSV!")
 
-    return df_norm.fillna(df_norm.mean())
+    # --- Extract feature matrix ---
+    X = df[metric_cols].astype(float)
 
+    # --- Rename to match training columns ---
+    rename = {
+        cpu_col: "cpu",
+        mem_col: "memory",
+        disk_col: "disk",
+        net_col: "network"
+    }
+    X = X.rename(columns=rename)
 
-def infer():
-    print("📌 Загружаем модель...")
+    # --- Load scaler ---
+    scaler = load_scaler()
+    X_scaled = scaler.transform(X)
 
-    scaler = joblib.load("models/checkpoints/scaler.pkl")
+    X_tensor = torch.tensor(X_scaled, dtype=torch.float32)
 
-    model = Autoencoder(4)
-    model.load_state_dict(torch.load("models/checkpoints/autoencoder.pt"))
-    model.eval()
+    # --- Load model ---
+    input_dim = X_tensor.shape[1]
+    model = load_model(input_dim)
 
-    df = load_from_mongo()
-    df_norm = preprocess_mongo(df)
-
-    X = scaler.transform(df_norm)
-    X_tensor = torch.tensor(X, dtype=torch.float32)
-
+    # --- Inference ---
     with torch.no_grad():
-        reconstructed = model(X_tensor).numpy()
+        reconstructed = model(X_tensor)
 
-    # reconstruction error
-    errors = np.mean((X - reconstructed) ** 2, axis=1)
+    errors = torch.mean((X_tensor - reconstructed) ** 2, dim=1).numpy()
+
     df["reconstruction_error"] = errors
 
-    # threshold
-    threshold = np.percentile(errors, 98)   # top 2% = аномалии
-    df["anomaly"] = df["reconstruction_error"] > threshold
+    # Adaptive threshold
+    threshold = np.percentile(errors, 98)
+    df["anomaly_flag"] = (errors > threshold).astype(int)
 
-    print("\n🔥 ТОП АНОМАЛИЙ:")
-    print(df[df["anomaly"]].sort_values("reconstruction_error", ascending=False).head(20))
-
-    df.to_csv("data/processed/mongo_analyzed.csv", index=False)
-    print("\n📌 Результат сохранён: data/processed/mongo_analyzed.csv")
+    df.to_csv(OUTPUT_PATH, index=False)
+    print("✅ Инференс завершён.")
+    print("📁 Результаты сохранены в:", OUTPUT_PATH)
 
 
 if __name__ == "__main__":
-    infer()
+    run_inference("data/processed/mongo_export.csv")

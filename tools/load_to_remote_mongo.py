@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from pymongo import MongoClient
 from dotenv import load_dotenv
@@ -5,10 +6,12 @@ import json
 
 CSV_PATH = "data/raw/your_dataset.csv"  # заменишь позже
 
+load_dotenv()  # loads .env into os.environ
 
+MONGO_URI = os.getenv("MONGO_URI")
+DB_NAME = os.getenv("DB_NAME")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME")
 
-DB_NAME = "monitoring"
-COLLECTION_NAME = "server_metrics"
 
 
 def load_csv_to_mongo(csv_path):
