@@ -6,16 +6,19 @@ class Autoencoder(nn.Module):
         super(Autoencoder, self).__init__()
 
         self.encoder = nn.Sequential(
-            nn.Linear(input_dim, 32),
+            nn.Linear(input_dim, input_dim*8),
             nn.ReLU(),
-            nn.Linear(32, 16),
+            nn.Linear(input_dim*8, input_dim*4),
             nn.ReLU(),
+            nn.Linear(input_dim*4, input_dim//2)
         )
 
         self.decoder = nn.Sequential(
-            nn.Linear(16, 32),
+            nn.Linear(input_dim//2, input_dim*4),
             nn.ReLU(),
-            nn.Linear(32, input_dim)
+            nn.Linear(input_dim*4, input_dim*8),
+            nn.ReLU(),
+            nn.Linear(input_dim*8, input_dim)
         )
 
     def forward(self, x):
