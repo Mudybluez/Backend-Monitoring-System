@@ -62,7 +62,7 @@ def normalize_and_merge(dfs):
 
     # сохранить raw merged
     os.makedirs(DATA_PROCESSED, exist_ok=True)
-    final.drop(columns=["timestamp"]).to_csv(f"{DATA_PROCESSED}/merged.csv", index=False)
+    final.to_csv(f"{DATA_PROCESSED}/merged.csv", index=False)
 
     # ----------------------------- #
     # 4) NORMALIZE
