@@ -56,7 +56,7 @@ def send_alert(msg):
 # BUILD DASHBOARD
 # ===========================
 st.set_page_config(layout="wide")
-st.title("📡 Real-Time Cloud Metrics Monitoring Dashboard")
+st.title("📡 Cloud Metrics Monitoring Dashboard")
 
 
 # ===========================
